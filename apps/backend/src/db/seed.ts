@@ -50,7 +50,7 @@ function generateEvent(timestamp: string): TrackEventInput {
   }
 }
 
-async function seed(count = 2500, spanDays = 30) {
+async function seed(count = 2500, spanDays = 30, chunkSize = 500) {
   const now = Date.now()
   const spreadMs = spanDays * 24 * 60 * 60 * 1000
 
@@ -59,24 +59,25 @@ async function seed(count = 2500, spanDays = 30) {
     return generateEvent(new Date(now - t * spreadMs).toISOString())
   })
 
-  const client = await pool.connect()
-  try {
-    await client.query('BEGIN')
-    for (const event of events) {
-      await client.query(
-        'INSERT INTO events (event_type, user_id, properties, timestamp) VALUES ($1, $2, $3, $4)',
-        [event.eventType, event.userId, JSON.stringify(event.properties ?? {}), event.timestamp],
-      )
-    }
-    await client.query('COMMIT')
-    console.log(`Seeded ${events.length} events.`)
-  } catch (err) {
-    await client.query('ROLLBACK')
-    throw err
-  } finally {
-    client.release()
-    await pool.end()
+  // one round trip per chunk via unnest(), instead of one round trip per row —
+  // 2500 sequential awaited inserts over a network connection to hosted
+  // Postgres took 10+ minutes and looked hung; this takes well under a second
+  for (let i = 0; i < events.length; i += chunkSize) {
+    const chunk = events.slice(i, i + chunkSize)
+    await pool.query(
+      `INSERT INTO events (event_type, user_id, properties, timestamp)
+       SELECT * FROM unnest($1::text[], $2::text[], $3::jsonb[], $4::timestamptz[])`,
+      [
+        chunk.map((e) => e.eventType),
+        chunk.map((e) => e.userId),
+        chunk.map((e) => JSON.stringify(e.properties ?? {})),
+        chunk.map((e) => e.timestamp),
+      ],
+    )
+    console.log(`Seeded ${Math.min(i + chunkSize, events.length)}/${events.length}`)
   }
+
+  await pool.end()
 }
 
 seed().catch((err) => {
