@@ -1,11 +1,35 @@
 import type { AnalyticsEvent, DataService, EventFilter } from '../types/analytics'
+import { filterEvents } from '../utils/filterEvents'
 
-const EVENT_TYPES = ['page_view', 'click', 'signup', 'purchase', 'search', 'error'] as const
+const EVENT_TYPES_WEIGHTED: Array<[string, number]> = [
+  ['page_view', 40],
+  ['click', 22],
+  ['search', 10],
+  ['add_to_cart', 8],
+  ['signup', 6],
+  ['login', 6],
+  ['purchase', 4],
+  ['logout', 3],
+  ['error', 1],
+]
+const EVENT_TYPES = EVENT_TYPES_WEIGHTED.map(([type]) => type)
 const PAGES = ['/home', '/pricing', '/docs', '/checkout', '/blog', '/settings']
 const COUNTRIES = ['US', 'IN', 'GB', 'DE', 'BR', 'JP']
+const DEVICES = ['desktop', 'mobile', 'tablet']
+const REFERRERS = ['direct', 'google', 'twitter', 'newsletter', 'referral']
 
 function randomFrom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function randomWeightedEventType(): string {
+  const total = EVENT_TYPES_WEIGHTED.reduce((sum, [, w]) => sum + w, 0)
+  let roll = Math.random() * total
+  for (const [type, weight] of EVENT_TYPES_WEIGHTED) {
+    roll -= weight
+    if (roll <= 0) return type
+  }
+  return EVENT_TYPES_WEIGHTED[0][0]
 }
 
 function randomId(): string {
@@ -13,10 +37,12 @@ function randomId(): string {
 }
 
 function generateEvent(timestamp = new Date().toISOString()): AnalyticsEvent {
-  const eventType = randomFrom(EVENT_TYPES)
+  const eventType = randomWeightedEventType()
   const properties: AnalyticsEvent['properties'] = {
     page: randomFrom(PAGES),
     country: randomFrom(COUNTRIES),
+    device: randomFrom(DEVICES),
+    referrer: randomFrom(REFERRERS),
   }
   if (eventType === 'purchase') {
     properties.amount = Math.round(Math.random() * 500 + 10)
@@ -28,24 +54,26 @@ function generateEvent(timestamp = new Date().toISOString()): AnalyticsEvent {
   return {
     id: randomId(),
     eventType,
-    userId: `user_${randomFrom(Array.from({ length: 40 }, (_, i) => i))}`,
+    userId: `user_${randomFrom(Array.from({ length: 60 }, (_, i) => i))}`,
     properties,
     timestamp,
   }
 }
 
-function generateHistoricalEvents(count: number): AnalyticsEvent[] {
+function generateHistoricalEvents(count: number, spanDays: number): AnalyticsEvent[] {
   const now = Date.now()
-  const spreadMs = 24 * 60 * 60 * 1000 // last 24h
+  const spreadMs = spanDays * 24 * 60 * 60 * 1000
 
-  const events = Array.from({ length: count }, () =>
-    generateEvent(new Date(now - Math.random() * spreadMs).toISOString()),
-  )
+  const events = Array.from({ length: count }, () => {
+    // bias toward more recent activity, like a growing product
+    const t = Math.pow(Math.random(), 1.6)
+    return generateEvent(new Date(now - t * spreadMs).toISOString())
+  })
   return events.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
 }
 
 class MockDataService implements DataService {
-  private events: AnalyticsEvent[] = generateHistoricalEvents(400)
+  private events: AnalyticsEvent[] = generateHistoricalEvents(2500, 30)
   private subscribers: Array<(event: AnalyticsEvent) => void> = []
   private intervalId: ReturnType<typeof setInterval> | null = null
 
@@ -63,23 +91,7 @@ class MockDataService implements DataService {
   }
 
   async getEvents(filter?: EventFilter): Promise<AnalyticsEvent[]> {
-    let result = this.events
-
-    if (filter?.eventTypes?.length) {
-      result = result.filter((e) => filter.eventTypes!.includes(e.eventType))
-    }
-    if (filter?.search) {
-      const q = filter.search.toLowerCase()
-      result = result.filter((e) => e.eventType.toLowerCase().includes(q))
-    }
-    if (filter?.from) {
-      result = result.filter((e) => e.timestamp >= filter.from!)
-    }
-    if (filter?.to) {
-      result = result.filter((e) => e.timestamp <= filter.to!)
-    }
-
-    return result
+    return filterEvents(this.events, filter)
   }
 
   subscribeToEvents(onEvent: (event: AnalyticsEvent) => void): () => void {

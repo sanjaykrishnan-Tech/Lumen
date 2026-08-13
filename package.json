@@ -2,11 +2,14 @@
   "name": "lumen",
   "private": true,
   "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:dashboard": "npm run dev --workspace apps/dashboard"
+    "dev:dashboard": "yarn workspace dashboard dev"
   }
 }
