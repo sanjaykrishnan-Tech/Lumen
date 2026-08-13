@@ -14,6 +14,7 @@
     "dev:backend": "yarn workspace backend dev",
     "db:up": "docker compose up -d",
     "db:migrate": "yarn workspace backend migrate",
-    "db:seed": "yarn workspace backend seed"
+    "db:seed": "yarn workspace backend seed",
+    "build:sdk": "yarn workspace @lumen/sdk build"
   }
 }
