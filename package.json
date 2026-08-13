@@ -1,0 +1,12 @@
+{
+  "name": "lumen",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm run dev --workspace apps/dashboard"
+  }
+}
