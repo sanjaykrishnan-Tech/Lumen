@@ -10,6 +10,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:dashboard": "yarn workspace dashboard dev"
+    "dev:dashboard": "yarn workspace dashboard dev",
+    "dev:backend": "yarn workspace backend dev",
+    "db:up": "docker compose up -d",
+    "db:migrate": "yarn workspace backend migrate",
+    "db:seed": "yarn workspace backend seed"
   }
 }

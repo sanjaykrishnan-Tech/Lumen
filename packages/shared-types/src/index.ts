@@ -17,3 +17,10 @@ export interface DataService {
   getEvents(filter?: EventFilter): Promise<AnalyticsEvent[]>
   subscribeToEvents(onEvent: (event: AnalyticsEvent) => void): () => void
 }
+
+export interface TrackEventInput {
+  eventType: string
+  userId: string
+  properties?: Record<string, string | number | boolean>
+  timestamp?: string
+}

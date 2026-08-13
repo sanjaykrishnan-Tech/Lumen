@@ -1,4 +1,4 @@
-import type { AnalyticsEvent, DataService, EventFilter } from '../types/analytics'
+import type { AnalyticsEvent, DataService, EventFilter } from '@lumen/shared-types'
 import { filterEvents } from '../utils/filterEvents'
 
 const EVENT_TYPES_WEIGHTED: Array<[string, number]> = [

@@ -6,7 +6,6 @@ import { EventBreakdownChart } from './components/EventBreakdownChart'
 import { FilterBar, type FilterState } from './components/FilterBar'
 import { bucketByRange, countByEventType } from './utils/aggregate'
 import { filterEvents } from './utils/filterEvents'
-import { EVENT_TYPES } from './services/mockDataService'
 
 const EMPTY_FILTER: FilterState = { search: '', eventTypes: [], dateRange: {} }
 
@@ -36,6 +35,11 @@ function App() {
     for (const e of eventsForFacets) counts[e.eventType] = (counts[e.eventType] ?? 0) + 1
     return counts
   }, [eventsForFacets])
+
+  const eventTypeOptions = useMemo(
+    () => Array.from(new Set(events.map((e) => e.eventType))).sort(),
+    [events],
+  )
 
   const filteredEvents = useMemo(() => filterEvents(events, apiFilter), [events, apiFilter])
 
@@ -91,7 +95,7 @@ function App() {
             <FilterBar
               filter={filter}
               onChange={setFilter}
-              eventTypeOptions={EVENT_TYPES}
+              eventTypeOptions={eventTypeOptions}
               eventTypeCounts={eventTypeCounts}
             />
 

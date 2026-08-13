@@ -1,4 +1,4 @@
-import type { AnalyticsEvent, EventFilter } from '../types/analytics'
+import type { AnalyticsEvent, EventFilter } from '@lumen/shared-types'
 
 export function filterEvents(events: AnalyticsEvent[], filter?: EventFilter): AnalyticsEvent[] {
   if (!filter) return events

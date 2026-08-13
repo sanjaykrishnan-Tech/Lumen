@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { dataService } from '../services/mockDataService'
-import type { AnalyticsEvent } from '../types/analytics'
+import { dataService } from '../services/dataService'
+import type { AnalyticsEvent } from '@lumen/shared-types'
 
 export function useAnalyticsEvents() {
   const [events, setEvents] = useState<AnalyticsEvent[]>([])

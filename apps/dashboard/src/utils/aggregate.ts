@@ -1,5 +1,5 @@
 import { eachDayOfInterval, eachHourOfInterval, format, startOfDay, startOfHour } from 'date-fns'
-import type { AnalyticsEvent } from '../types/analytics'
+import type { AnalyticsEvent } from '@lumen/shared-types'
 
 export interface TimeBucket {
   label: string
