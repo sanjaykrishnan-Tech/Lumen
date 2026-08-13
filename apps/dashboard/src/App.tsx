@@ -4,6 +4,7 @@ import { StatCard } from './components/StatCard'
 import { TimeSeriesChart } from './components/TimeSeriesChart'
 import { EventBreakdownChart } from './components/EventBreakdownChart'
 import { FilterBar, type FilterState } from './components/FilterBar'
+import { LoadingState } from './components/LoadingState'
 import { bucketByRange, countByEventType } from './utils/aggregate'
 import { filterEvents } from './utils/filterEvents'
 
@@ -89,7 +90,7 @@ function App() {
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {loading ? (
-          <p className="text-sm text-gray-400">Loading events…</p>
+          <LoadingState />
         ) : (
           <>
             <FilterBar

@@ -10,3 +10,14 @@ body {
   background: #f7f8f7;
   color: #1a1f1a;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
