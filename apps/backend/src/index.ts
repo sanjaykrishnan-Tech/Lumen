@@ -7,7 +7,14 @@ import { createEventsRouter } from './routes/events.js'
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
 const DEFAULT_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
-const CORS_ORIGINS = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : DEFAULT_ORIGINS
+// cors/socket.io match "*" as a literal array entry, not a wildcard, so it
+// has to be passed through as the bare string "*" to actually allow any origin
+const CORS_ORIGINS: string | string[] =
+  process.env.CORS_ORIGIN === '*'
+    ? '*'
+    : process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : DEFAULT_ORIGINS
 
 const app = express()
 app.use(cors({ origin: CORS_ORIGINS }))
