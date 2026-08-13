@@ -8,6 +8,7 @@ Mini analytics platform (Mixpanel-style) — SDK, real-time pipeline, dashboard.
 apps/
   dashboard/   React + TS + Tailwind + Recharts dashboard (Phase 1-2)
   backend/     Node/Express ingestion + Postgres + Socket.io (Phase 3)
+  demo-app/    Task management app that fires real events via @lumen/sdk (Phase 5)
 packages/
   shared-types/  AnalyticsEvent/EventFilter/DataService types shared by dashboard + backend
   sdk/           @lumen/sdk tracking SDK — init()/track(), auto-batched, offline queue (Phase 4)
@@ -15,15 +16,15 @@ packages/
 
 ## Status
 
-Phase 4 done: standalone tracking SDK (`@lumen/sdk`), bundled with tsup as ESM, CJS, and
-an IIFE global build for drop-in `<script>` use. Auto-batches events, persists an
-offline queue to localStorage, and retries failed flushes.
+Phase 5 done: a small task management app (`apps/demo-app`) uses `@lumen/sdk` to fire
+real events — `page_view`, `task_created`, `task_completed`, `task_reopened`,
+`task_deleted`, and filter-tab clicks — so the dashboard now has genuine, SDK-driven
+traffic instead of only synthetic/seeded data.
 
 ## Roadmap
 
-See project plan — remaining phases add a demo app generating real SDK-driven events,
-and production-style concerns (Redis caching, dedup, rate limiting, rollups) once
-there's a concrete bottleneck to point to.
+See project plan — remaining work is production-style concerns (Redis caching, dedup,
+rate limiting, rollups) once there's a concrete bottleneck to point to.
 
 ## Development
 
@@ -31,6 +32,7 @@ Requires Docker (for Postgres) and Node matching `.nvmrc` (`nvm use`).
 
 ```
 yarn install
+yarn build:sdk    # dashboard and demo-app both depend on the built @lumen/sdk output
 
 yarn db:up        # start Postgres
 yarn db:migrate   # create the events table
@@ -38,6 +40,7 @@ yarn db:seed       # backfill ~2500 realistic historical events
 
 yarn dev:backend   # http://localhost:4000
 yarn dev:dashboard # http://localhost:5173
+yarn dev:demo      # http://localhost:5174 — generates real SDK events as you use it
 ```
 
 Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/dashboard/.env.example`
