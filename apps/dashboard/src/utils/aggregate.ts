@@ -75,3 +75,30 @@ export function countByEventType(events: AnalyticsEvent[]): EventTypeCount[] {
     .map(([eventType, count]) => ({ eventType, count }))
     .sort((a, b) => b.count - a.count)
 }
+
+export interface RankedItem {
+  label: string
+  count: number
+}
+
+/**
+ * Rank events by an arbitrary key (event type, a property value, userId…).
+ * Entries where the selector returns null/undefined/'' are skipped.
+ */
+export function topBy(
+  events: AnalyticsEvent[],
+  selector: (event: AnalyticsEvent) => string | number | boolean | undefined | null,
+  limit = 5,
+): RankedItem[] {
+  const counts = new Map<string, number>()
+  for (const event of events) {
+    const raw = selector(event)
+    if (raw === undefined || raw === null || raw === '') continue
+    const label = String(raw)
+    counts.set(label, (counts.get(label) ?? 0) + 1)
+  }
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}

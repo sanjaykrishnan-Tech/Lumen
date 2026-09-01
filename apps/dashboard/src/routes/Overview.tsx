@@ -6,7 +6,10 @@ import { TimeSeriesChart } from '../components/TimeSeriesChart'
 import { EventBreakdownChart } from '../components/EventBreakdownChart'
 import { FilterBar } from '../components/FilterBar'
 import { LoadingState } from '../components/LoadingState'
+import { InsightsStrip } from '../components/InsightsStrip'
+import { TopLists } from '../components/TopLists'
 import { bucketByRange, countByEventType } from '../utils/aggregate'
+import { computeInsights } from '../utils/insights'
 import { filterEvents } from '../utils/filterEvents'
 
 export function Overview() {
@@ -49,6 +52,9 @@ export function Overview() {
   )
   const breakdownData = useMemo(() => countByEventType(filteredEvents), [filteredEvents])
 
+  // insights compare rolling 24h windows over all traffic, independent of filters
+  const insights = useMemo(() => computeInsights(events), [events])
+
   const uniqueUsers = useMemo(() => new Set(filteredEvents.map((e) => e.userId)).size, [filteredEvents])
 
   const errorCount = useMemo(
@@ -87,9 +93,21 @@ export function Overview() {
         <StatCard label="Error rate" value={`${errorRate}%`} />
       </div>
 
+      <div className="mt-6">
+        <InsightsStrip insights={insights} />
+      </div>
+
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TimeSeriesChart data={timeSeriesData} />
         <EventBreakdownChart data={breakdownData} selected={filter.eventTypes} onToggle={toggleEventType} />
+      </div>
+
+      <div className="mt-6">
+        <TopLists
+          events={filteredEvents}
+          selectedEventTypes={filter.eventTypes}
+          onToggleEventType={toggleEventType}
+        />
       </div>
     </>
   )
