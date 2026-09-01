@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 const TABS = [
   { to: '/', label: 'Overview', end: true },
   { to: '/events', label: 'Events', end: false },
+  { to: '/funnels', label: 'Funnels', end: false },
 ]
 
 export function Nav() {
