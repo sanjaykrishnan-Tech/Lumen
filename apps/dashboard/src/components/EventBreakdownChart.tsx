@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { EventTypeCount } from '../utils/aggregate'
+import { colorForEventType } from '../utils/eventColors'
 
 type ChartType = 'bar' | 'pie'
 
@@ -9,8 +10,6 @@ interface EventBreakdownChartProps {
   selected: string[]
   onToggle: (eventType: string) => void
 }
-
-const SHADES = ['#166534', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0', '#dcfce7', '#f0fdf4']
 
 export function EventBreakdownChart({ data, selected, onToggle }: EventBreakdownChartProps) {
   const [chartType, setChartType] = useState<ChartType>('bar')
@@ -58,10 +57,10 @@ export function EventBreakdownChart({ data, selected, onToggle }: EventBreakdown
                 cursor={{ fill: '#f0fdf4' }}
               />
               <Bar dataKey="count" radius={[0, 4, 4, 0]} cursor="pointer">
-                {data.map((entry, index) => (
+                {data.map((entry) => (
                   <Cell
                     key={entry.eventType}
-                    fill={SHADES[index % SHADES.length]}
+                    fill={colorForEventType(entry.eventType)}
                     fillOpacity={opacityFor(entry.eventType)}
                     onClick={() => onToggle(entry.eventType)}
                   />
@@ -80,10 +79,10 @@ export function EventBreakdownChart({ data, selected, onToggle }: EventBreakdown
                 paddingAngle={2}
                 cursor="pointer"
               >
-                {data.map((entry, index) => (
+                {data.map((entry) => (
                   <Cell
                     key={entry.eventType}
-                    fill={SHADES[index % SHADES.length]}
+                    fill={colorForEventType(entry.eventType)}
                     fillOpacity={opacityFor(entry.eventType)}
                     onClick={() => onToggle(entry.eventType)}
                   />
@@ -95,7 +94,7 @@ export function EventBreakdownChart({ data, selected, onToggle }: EventBreakdown
       </div>
       {chartType === 'pie' && (
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-          {data.map((entry, index) => (
+          {data.map((entry) => (
             <button
               key={entry.eventType}
               type="button"
@@ -103,7 +102,7 @@ export function EventBreakdownChart({ data, selected, onToggle }: EventBreakdown
               className="flex items-center gap-1.5 text-xs"
               style={{ opacity: opacityFor(entry.eventType) }}
             >
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: SHADES[index % SHADES.length] }} />
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: colorForEventType(entry.eventType) }} />
               <span className="text-gray-600">{entry.eventType}</span>
             </button>
           ))}

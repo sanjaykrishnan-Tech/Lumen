@@ -21,3 +21,12 @@ body {
     transform: translateY(0);
   }
 }
+
+@keyframes rowIn {
+  from {
+    background-color: #dcfce7;
+  }
+  to {
+    background-color: transparent;
+  }
+}
