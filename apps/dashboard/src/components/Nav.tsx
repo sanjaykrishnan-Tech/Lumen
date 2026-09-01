@@ -4,6 +4,7 @@ const TABS = [
   { to: '/', label: 'Overview', end: true },
   { to: '/events', label: 'Events', end: false },
   { to: '/funnels', label: 'Funnels', end: false },
+  { to: '/retention', label: 'Retention', end: false },
 ]
 
 export function Nav() {

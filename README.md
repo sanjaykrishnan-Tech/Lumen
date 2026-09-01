@@ -6,8 +6,10 @@ Mini analytics platform (Mixpanel-style) — SDK, real-time pipeline, dashboard.
 
 ```
 apps/
-  dashboard/   React + TS + Tailwind + Recharts dashboard — Overview (charts)
-               and Events (live, filterable, pausable event feed with CSV export)
+  dashboard/   React + TS + Tailwind + Recharts dashboard — Overview (charts),
+               Events (live, filterable, pausable feed with CSV export),
+               Funnels (ordered-step conversion), Retention (cohort grid).
+               All views are URL-synced and share one real-time event stream.
   backend/     Node/Express ingestion + Postgres + Socket.io (Phase 3)
   demo-app/    Task management app that fires real events via @lumen/sdk (Phase 5)
 packages/
