@@ -9,6 +9,9 @@
     "apps/*",
     "packages/*"
   ],
+  "resolutions": {
+    "vite": "8.2.2"
+  },
   "scripts": {
     "dev:dashboard": "yarn workspace dashboard dev",
     "dev:backend": "yarn workspace backend dev",
