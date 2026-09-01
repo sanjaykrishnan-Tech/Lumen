@@ -38,6 +38,19 @@ class ApiDataService implements DataService {
       socket.off('event', onEvent)
     }
   }
+
+  subscribeToConnection(onChange: (connected: boolean) => void): () => void {
+    const socket = this.getSocket()
+    const handleConnect = () => onChange(true)
+    const handleDisconnect = () => onChange(false)
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+    onChange(socket.connected)
+    return () => {
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
+    }
+  }
 }
 
 export const apiDataService: DataService = new ApiDataService()
