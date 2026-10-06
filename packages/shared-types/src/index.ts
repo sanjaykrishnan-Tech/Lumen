@@ -36,3 +36,14 @@ export interface AuthUser {
   email: string
   name: string
 }
+
+export type ProjectRole = 'owner' | 'viewer'
+
+export interface Project {
+  id: string
+  name: string
+  /** Public key the SDK sends with events; it can only add events to this project. */
+  writeKey: string
+  role: ProjectRole
+  createdAt: string
+}

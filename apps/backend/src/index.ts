@@ -6,6 +6,7 @@ import { Server as SocketIOServer } from 'socket.io'
 import cookieParser from 'cookie-parser'
 import { createEventsRouter } from './routes/events.js'
 import { createAuthRouter } from './routes/auth.js'
+import { createProjectsRouter } from './routes/projects.js'
 import { ACCESS_COOKIE, parseCookieHeader } from './auth/cookies.js'
 import { verifyAccessToken } from './auth/tokens.js'
 
@@ -38,6 +39,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth', createAuthRouter())
+app.use('/api/projects', createProjectsRouter())
 app.use('/api/events', createEventsRouter(io))
 
 // only signed-in users may open a live-event socket; the access token rides in
