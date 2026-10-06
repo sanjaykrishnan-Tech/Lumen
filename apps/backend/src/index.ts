@@ -1,11 +1,14 @@
 import 'dotenv/config'
 import { createServer } from 'node:http'
 import express from 'express'
+import { z } from 'zod'
 import cors from 'cors'
 import { Server as SocketIOServer } from 'socket.io'
 import cookieParser from 'cookie-parser'
-import { createEventsRouter } from './routes/events.js'
+import { createEventsRouter, projectRoom } from './routes/events.js'
+import { getMemberRole } from './db/projectsRepo.js'
 import { createAuthRouter } from './routes/auth.js'
+import { createProjectsRouter } from './routes/projects.js'
 import { ACCESS_COOKIE, parseCookieHeader } from './auth/cookies.js'
 import { verifyAccessToken } from './auth/tokens.js'
 
@@ -38,6 +41,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth', createAuthRouter())
+app.use('/api/projects', createProjectsRouter())
 app.use('/api/events', createEventsRouter(io))
 
 // only signed-in users may open a live-event socket; the access token rides in
@@ -51,8 +55,21 @@ io.use((socket, next) => {
   next()
 })
 
+const uuid = z.string().uuid()
+
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`)
+
+  // a socket listens to one project at a time; switching projects swaps rooms.
+  // Membership is re-checked here, so a client can't join a room by guessing an id.
+  socket.on('subscribe', async (projectId: unknown, ack?: (ok: boolean) => void) => {
+    const parsed = uuid.safeParse(projectId)
+    const allowed = parsed.success && !!(await getMemberRole(parsed.data, socket.data.user.id))
+    for (const room of [...socket.rooms]) if (room.startsWith('project:')) socket.leave(room)
+    if (allowed) socket.join(projectRoom(parsed.data!))
+    ack?.(allowed)
+  })
+
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`)
   })

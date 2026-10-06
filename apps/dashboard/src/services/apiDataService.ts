@@ -5,6 +5,7 @@ import { apiFetch, expireSession, refreshSession, API_URL } from './http'
 function buildQuery(filter?: EventFilter): string {
   if (!filter) return ''
   const params = new URLSearchParams()
+  if (filter.projectId) params.set('projectId', filter.projectId)
   if (filter.eventTypes?.length) params.set('eventTypes', filter.eventTypes.join(','))
   if (filter.search) params.set('search', filter.search)
   if (filter.from) params.set('from', filter.from)
@@ -43,11 +44,20 @@ class ApiDataService implements DataService {
     return data.events
   }
 
-  subscribeToEvents(onEvent: (event: AnalyticsEvent) => void): () => void {
+  subscribeToEvents(onEvent: (event: AnalyticsEvent) => void, projectId?: string): () => void {
     const socket = this.getSocket()
     socket.on('event', onEvent)
+
+    // rooms are per-connection, so (re)join the project on every connect
+    const join = () => {
+      if (projectId) socket.emit('subscribe', projectId)
+    }
+    socket.on('connect', join)
+    if (socket.connected) join()
+
     return () => {
       socket.off('event', onEvent)
+      socket.off('connect', join)
     }
   }
 

@@ -6,6 +6,7 @@ const DEFAULT_FLUSH_INTERVAL_MS = 5000
 
 export class LumenClient {
   private readonly apiUrl: string
+  private readonly writeKey: string
   private readonly batchSize: number
   private readonly flushIntervalMs: number
   private readonly userId: string
@@ -16,8 +17,10 @@ export class LumenClient {
 
   constructor(config: LumenConfig) {
     if (!config.apiUrl) throw new Error('Lumen: config.apiUrl is required')
+    if (!config.writeKey) throw new Error('Lumen: config.writeKey is required (find it under Settings in the dashboard)')
 
     this.apiUrl = config.apiUrl.replace(/\/$/, '')
+    this.writeKey = config.writeKey
     this.batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE
     this.flushIntervalMs = config.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS
     this.userId = config.userId ?? getOrCreateAnonymousId()
@@ -57,11 +60,12 @@ export class LumenClient {
     try {
       const res = await fetch(`${this.apiUrl}/api/events`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Lumen-Key': this.writeKey },
         body: JSON.stringify({ events: batch }),
         keepalive: true,
       })
 
+      if (res.status === 401) console.warn('Lumen: the server rejected the write key — check config.writeKey')
       if (!res.ok) throw new Error(`Lumen: ingestion request failed with ${res.status}`)
 
       // only drop events that were actually part of this batch — track() may

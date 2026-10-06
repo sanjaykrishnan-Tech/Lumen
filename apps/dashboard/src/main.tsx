@@ -7,6 +7,7 @@ import { Overview } from './routes/Overview.tsx'
 import { Events } from './routes/Events.tsx'
 import { Funnels } from './routes/Funnels.tsx'
 import { Retention } from './routes/Retention.tsx'
+import { Settings } from './routes/Settings.tsx'
 import { Login } from './routes/Login.tsx'
 import { Register } from './routes/Register.tsx'
 import { AuthProvider } from './context/AuthProvider.tsx'
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
           { path: 'events', element: <Events /> },
           { path: 'funnels', element: <Funnels /> },
           { path: 'retention', element: <Retention /> },
+          { path: 'settings', element: <Settings /> },
         ],
       },
     ],

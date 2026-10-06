@@ -2,17 +2,23 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { dataService } from '../services/dataService'
 import type { AnalyticsEvent } from '@lumen/shared-types'
 import { EventsContext } from './eventsContext'
+import { useProjects } from './projectsContext'
 
 export function EventsProvider({ children }: { children: ReactNode }) {
+  const { current } = useProjects()
+  const projectId = current.id
   const [events, setEvents] = useState<AnalyticsEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(true)
 
   useEffect(() => {
     let active = true
+    // switching projects must not briefly show the previous project's events
+    setEvents([])
+    setLoading(true)
 
     dataService
-      .getEvents()
+      .getEvents({ projectId })
       .then((initial) => {
         if (!active) return
         setEvents(initial)
@@ -25,7 +31,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
     const unsubscribeEvents = dataService.subscribeToEvents((event) => {
       setEvents((prev) => [...prev, event])
-    })
+    }, projectId)
 
     const unsubscribeConnection = dataService.subscribeToConnection?.(setConnected)
 
@@ -34,7 +40,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       unsubscribeEvents()
       unsubscribeConnection?.()
     }
-  }, [])
+  }, [projectId])
 
   const value = useMemo(
     () => ({ events, loading, connected }),

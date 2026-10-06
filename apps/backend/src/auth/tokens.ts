@@ -24,3 +24,5 @@ export function verifyAccessToken(token: string): { id: string; email: string; n
 
 export const newRefreshToken = () => randomBytes(32).toString('base64url')
 export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex')
+
+export const newWriteKey = () => `lmn_${randomBytes(24).toString('base64url')}`
