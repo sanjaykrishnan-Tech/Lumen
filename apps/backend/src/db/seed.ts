@@ -50,7 +50,23 @@ function generateEvent(timestamp: string): TrackEventInput {
   }
 }
 
-async function seed(count = 2500, spanDays = 30, chunkSize = 500) {
+/** First project the user owns — seeded events must belong to a project to be visible. */
+async function findOwnedProject(email: string): Promise<{ id: string; name: string }> {
+  const result = await pool.query<{ id: string; name: string }>(
+    `SELECT p.id, p.name FROM projects p
+     JOIN project_members m ON m.project_id = p.id
+     JOIN users u ON u.id = m.user_id
+     WHERE LOWER(u.email) = LOWER($1) AND m.role = 'owner'
+     ORDER BY p.created_at LIMIT 1`,
+    [email],
+  )
+  if (!result.rows[0]) {
+    throw new Error(`No project found for ${email} — sign up and open the dashboard once first`)
+  }
+  return result.rows[0]
+}
+
+async function seed(projectId: string, count = 2500, spanDays = 30, chunkSize = 500) {
   const now = Date.now()
   const spreadMs = spanDays * 24 * 60 * 60 * 1000
 
@@ -65,22 +81,32 @@ async function seed(count = 2500, spanDays = 30, chunkSize = 500) {
   for (let i = 0; i < events.length; i += chunkSize) {
     const chunk = events.slice(i, i + chunkSize)
     await pool.query(
-      `INSERT INTO events (event_type, user_id, properties, timestamp)
-       SELECT * FROM unnest($1::text[], $2::text[], $3::jsonb[], $4::timestamptz[])`,
+      `INSERT INTO events (event_type, user_id, properties, timestamp, project_id)
+       SELECT t.*, $5::uuid FROM unnest($1::text[], $2::text[], $3::jsonb[], $4::timestamptz[]) AS t`,
       [
         chunk.map((e) => e.eventType),
         chunk.map((e) => e.userId),
         chunk.map((e) => JSON.stringify(e.properties ?? {})),
         chunk.map((e) => e.timestamp),
+        projectId,
       ],
     )
     console.log(`Seeded ${Math.min(i + chunkSize, events.length)}/${events.length}`)
   }
 
-  await pool.end()
 }
 
-seed().catch((err) => {
-  console.error('Seed failed:', err)
-  process.exit(1)
-})
+async function main() {
+  const email = process.argv[2]
+  if (!email) throw new Error('Usage: yarn db:seed <email> — seeds that user\'s first owned project')
+  const project = await findOwnedProject(email)
+  console.log(`Seeding project "${project.name}" for ${email}`)
+  await seed(project.id)
+}
+
+main()
+  .catch((err) => {
+    console.error('Seed failed:', err instanceof Error ? err.message : err)
+    process.exitCode = 1
+  })
+  .finally(() => pool.end())

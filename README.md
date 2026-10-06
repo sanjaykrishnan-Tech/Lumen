@@ -39,7 +39,7 @@ yarn build:sdk    # dashboard and demo-app both depend on the built @lumen/sdk o
 
 yarn db:up        # start Postgres
 yarn db:migrate   # create the events table
-yarn db:seed       # backfill ~2500 realistic historical events
+yarn db:seed you@example.com   # backfill ~2500 events into that account's first project (sign up first)
 
 yarn dev:backend   # http://localhost:4000
 yarn dev:dashboard # http://localhost:5173
@@ -52,15 +52,18 @@ dashboard's `.env` to run against the built-in mock data service instead of the 
 
 ### API
 
-- `GET /api/events?eventTypes=a,b&search=foo&from=ISO&to=ISO` — query events
-- `POST /api/events` with `{ "events": [{ "eventType", "userId", "properties"?, "timestamp"? }] }` — ingest a batch; broadcasts each event over Socket.io on success
+Auth is cookie-based (httpOnly JWT access + rotating refresh token): `POST /api/auth/register|login|refresh|logout`, `GET /api/auth/me`.
+
+- `GET /api/projects` / `POST /api/projects` / `POST /api/projects/:id/rotate-key` — your projects and their write keys (signed in)
+- `GET /api/events?projectId=…&eventTypes=a,b&search=foo&from=ISO&to=ISO` — query a project's events (signed in, must be a member)
+- `POST /api/events` with header `X-Lumen-Key: <project write key>` and `{ "events": [{ "eventType", "userId", "properties"?, "timestamp"? }] }` — ingest a batch; broadcasts each event to that project's Socket.io room
 
 ### SDK (`@lumen/sdk`)
 
 ```ts
 import { init, track } from '@lumen/sdk'
 
-init({ apiUrl: 'http://localhost:4000', batchSize: 10, flushIntervalMs: 5000 })
+init({ apiUrl: 'http://localhost:4000', writeKey: 'lmn_…', batchSize: 10, flushIntervalMs: 5000 })
 track('page_view', { page: '/pricing' })
 ```
 

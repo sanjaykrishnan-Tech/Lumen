@@ -59,20 +59,18 @@ export function createEventsRouter(io: SocketIOServer): Router {
     }
 
     try {
-      // The write key is optional for now so existing SDK installs keep working;
-      // keyless events are stored without a project and nobody sees them.
-      // A key that is present but wrong is always rejected.
       const writeKey = req.get(WRITE_KEY_HEADER)
-      let projectId: string | null = null
-      if (writeKey) {
-        projectId = await findProjectIdByWriteKey(writeKey)
-        if (!projectId) {
-          res.status(401).json({ error: 'Invalid write key' })
-          return
-        }
+      if (!writeKey) {
+        res.status(401).json({ error: 'Missing write key (X-Lumen-Key header)' })
+        return
+      }
+      const projectId = await findProjectIdByWriteKey(writeKey)
+      if (!projectId) {
+        res.status(401).json({ error: 'Invalid write key' })
+        return
       }
       const inserted = await insertEvents(rawEvents, projectId)
-      if (projectId) inserted.forEach((event) => io.to(projectRoom(projectId)).emit('event', event))
+      inserted.forEach((event) => io.to(projectRoom(projectId)).emit('event', event))
       res.status(201).json({ events: inserted })
     } catch (err) {
       console.error('Failed to ingest events:', err)

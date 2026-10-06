@@ -48,8 +48,7 @@ export async function getEvents(projectId: string, filter: EventFilter = {}): Pr
   return result.rows.map(toAnalyticsEvent)
 }
 
-/** projectId is null for events sent without a write key (not visible in any project). */
-export async function insertEvents(events: TrackEventInput[], projectId: string | null): Promise<AnalyticsEvent[]> {
+export async function insertEvents(events: TrackEventInput[], projectId: string): Promise<AnalyticsEvent[]> {
   if (!events.length) return []
 
   const client = await pool.connect()

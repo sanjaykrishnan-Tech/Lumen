@@ -3,6 +3,8 @@ export type EventProperties = Record<string, string | number | boolean>
 export interface LumenConfig {
   /** Base URL of the Lumen ingestion API, e.g. "https://api.example.com" */
   apiUrl: string
+  /** Project write key from the Lumen dashboard (Settings). Identifies which project receives the events. */
+  writeKey: string
   /** Flush the queue once it reaches this many events. Default: 10 */
   batchSize?: number
   /** Flush the queue on this interval regardless of size, in ms. Default: 5000 */
