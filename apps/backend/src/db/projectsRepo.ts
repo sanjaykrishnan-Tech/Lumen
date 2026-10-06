@@ -73,3 +73,8 @@ export async function rotateWriteKey(projectId: string, userId: string): Promise
   ])
   return row.rows[0] ? toProject(row.rows[0]) : null
 }
+
+export async function findProjectIdByWriteKey(writeKey: string): Promise<string | null> {
+  const result = await pool.query<{ id: string }>('SELECT id FROM projects WHERE write_key = $1', [writeKey])
+  return result.rows[0]?.id ?? null
+}

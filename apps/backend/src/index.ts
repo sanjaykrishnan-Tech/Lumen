@@ -1,10 +1,12 @@
 import 'dotenv/config'
 import { createServer } from 'node:http'
 import express from 'express'
+import { z } from 'zod'
 import cors from 'cors'
 import { Server as SocketIOServer } from 'socket.io'
 import cookieParser from 'cookie-parser'
-import { createEventsRouter } from './routes/events.js'
+import { createEventsRouter, projectRoom } from './routes/events.js'
+import { getMemberRole } from './db/projectsRepo.js'
 import { createAuthRouter } from './routes/auth.js'
 import { createProjectsRouter } from './routes/projects.js'
 import { ACCESS_COOKIE, parseCookieHeader } from './auth/cookies.js'
@@ -53,8 +55,21 @@ io.use((socket, next) => {
   next()
 })
 
+const uuid = z.string().uuid()
+
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`)
+
+  // a socket listens to one project at a time; switching projects swaps rooms.
+  // Membership is re-checked here, so a client can't join a room by guessing an id.
+  socket.on('subscribe', async (projectId: unknown, ack?: (ok: boolean) => void) => {
+    const parsed = uuid.safeParse(projectId)
+    const allowed = parsed.success && !!(await getMemberRole(parsed.data, socket.data.user.id))
+    for (const room of [...socket.rooms]) if (room.startsWith('project:')) socket.leave(room)
+    if (allowed) socket.join(projectRoom(parsed.data!))
+    ack?.(allowed)
+  })
+
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`)
   })

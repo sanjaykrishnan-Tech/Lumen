@@ -19,9 +19,9 @@ function toAnalyticsEvent(row: EventRow): AnalyticsEvent {
   }
 }
 
-export async function getEvents(filter: EventFilter = {}): Promise<AnalyticsEvent[]> {
-  const conditions: string[] = []
-  const values: unknown[] = []
+export async function getEvents(projectId: string, filter: EventFilter = {}): Promise<AnalyticsEvent[]> {
+  const values: unknown[] = [projectId]
+  const conditions: string[] = ['project_id = $1']
 
   if (filter.eventTypes?.length) {
     values.push(filter.eventTypes)
@@ -40,7 +40,7 @@ export async function getEvents(filter: EventFilter = {}): Promise<AnalyticsEven
     conditions.push(`timestamp <= $${values.length}`)
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const where = `WHERE ${conditions.join(' AND ')}`
   const result = await pool.query<EventRow>(
     `SELECT id, event_type, user_id, properties, timestamp FROM events ${where} ORDER BY timestamp ASC LIMIT 10000`,
     values,
@@ -48,7 +48,8 @@ export async function getEvents(filter: EventFilter = {}): Promise<AnalyticsEven
   return result.rows.map(toAnalyticsEvent)
 }
 
-export async function insertEvents(events: TrackEventInput[]): Promise<AnalyticsEvent[]> {
+/** projectId is null for events sent without a write key (not visible in any project). */
+export async function insertEvents(events: TrackEventInput[], projectId: string | null): Promise<AnalyticsEvent[]> {
   if (!events.length) return []
 
   const client = await pool.connect()
@@ -57,10 +58,10 @@ export async function insertEvents(events: TrackEventInput[]): Promise<Analytics
     const inserted: AnalyticsEvent[] = []
     for (const event of events) {
       const result = await client.query<EventRow>(
-        `INSERT INTO events (event_type, user_id, properties, timestamp)
-         VALUES ($1, $2, $3, COALESCE($4, now()))
+        `INSERT INTO events (event_type, user_id, properties, timestamp, project_id)
+         VALUES ($1, $2, $3, COALESCE($4, now()), $5)
          RETURNING id, event_type, user_id, properties, timestamp`,
-        [event.eventType, event.userId, JSON.stringify(event.properties ?? {}), event.timestamp ?? null],
+        [event.eventType, event.userId, JSON.stringify(event.properties ?? {}), event.timestamp ?? null, projectId],
       )
       inserted.push(toAnalyticsEvent(result.rows[0]))
     }
