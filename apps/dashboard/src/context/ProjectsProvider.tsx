@@ -56,9 +56,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const upsertProject = useCallback((project: Project) => {
+    setProjects((prev) =>
+      prev.some((p) => p.id === project.id) ? prev.map((p) => (p.id === project.id ? project : p)) : [...prev, project],
+    )
+  }, [])
+
   const value = useMemo(
-    () => (current ? { projects, current, selectProject } : null),
-    [projects, current, selectProject],
+    () => (current ? { projects, current, selectProject, upsertProject } : null),
+    [projects, current, selectProject, upsertProject],
   )
 
   if (error) {

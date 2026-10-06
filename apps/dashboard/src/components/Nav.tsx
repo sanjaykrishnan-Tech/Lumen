@@ -5,6 +5,7 @@ const TABS = [
   { to: '/events', label: 'Events', end: false },
   { to: '/funnels', label: 'Funnels', end: false },
   { to: '/retention', label: 'Retention', end: false },
+  { to: '/settings', label: 'Settings', end: false },
 ]
 
 export function Nav() {

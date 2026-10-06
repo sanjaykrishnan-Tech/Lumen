@@ -5,6 +5,8 @@ export interface ProjectsContextValue {
   projects: Project[]
   current: Project
   selectProject: (id: string) => void
+  /** Add a new project, or replace an existing one (e.g. after rotating its key). */
+  upsertProject: (project: Project) => void
 }
 
 export const ProjectsContext = createContext<ProjectsContextValue | null>(null)
