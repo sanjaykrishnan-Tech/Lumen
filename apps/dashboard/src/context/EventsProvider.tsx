@@ -11,11 +11,17 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true
 
-    dataService.getEvents().then((initial) => {
-      if (!active) return
-      setEvents(initial)
-      setLoading(false)
-    })
+    dataService
+      .getEvents()
+      .then((initial) => {
+        if (!active) return
+        setEvents(initial)
+        setLoading(false)
+      })
+      .catch(() => {
+        // a 401 here already signed the user out; other failures just stop the spinner
+        if (active) setLoading(false)
+      })
 
     const unsubscribeEvents = dataService.subscribeToEvents((event) => {
       setEvents((prev) => [...prev, event])

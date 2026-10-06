@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Server as SocketIOServer } from 'socket.io'
 import type { EventFilter, TrackEventInput } from '@lumen/shared-types'
+import { requireAuth } from '../auth/middleware.js'
 import { getEvents, insertEvents } from '../db/eventsRepo.js'
 
 function isValidTrackInput(value: unknown): value is TrackEventInput {
@@ -12,7 +13,7 @@ function isValidTrackInput(value: unknown): value is TrackEventInput {
 export function createEventsRouter(io: SocketIOServer): Router {
   const router = Router()
 
-  router.get('/', async (req, res) => {
+  router.get('/', requireAuth, async (req, res) => {
     const filter: EventFilter = {
       eventTypes: typeof req.query.eventTypes === 'string' ? req.query.eventTypes.split(',') : undefined,
       search: typeof req.query.search === 'string' ? req.query.search : undefined,
