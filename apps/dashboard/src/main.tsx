@@ -7,22 +7,35 @@ import { Overview } from './routes/Overview.tsx'
 import { Events } from './routes/Events.tsx'
 import { Funnels } from './routes/Funnels.tsx'
 import { Retention } from './routes/Retention.tsx'
+import { Login } from './routes/Login.tsx'
+import { Register } from './routes/Register.tsx'
+import { AuthProvider } from './context/AuthProvider.tsx'
+import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 
 const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
+  { path: '/register', element: <Register /> },
   {
-    path: '/',
-    element: <App />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Overview /> },
-      { path: 'events', element: <Events /> },
-      { path: 'funnels', element: <Funnels /> },
-      { path: 'retention', element: <Retention /> },
+      {
+        path: '/',
+        element: <App />,
+        children: [
+          { index: true, element: <Overview /> },
+          { path: 'events', element: <Events /> },
+          { path: 'funnels', element: <Funnels /> },
+          { path: 'retention', element: <Retention /> },
+        ],
+      },
     ],
   },
 ])
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 )

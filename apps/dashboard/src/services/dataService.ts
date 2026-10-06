@@ -2,6 +2,6 @@ import type { DataService } from '@lumen/shared-types'
 import { apiDataService } from './apiDataService'
 import { dataService as mockDataService } from './mockDataService'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+import { USE_MOCK } from './http'
 
-export const dataService: DataService = useMock ? mockDataService : apiDataService
+export const dataService: DataService = USE_MOCK ? mockDataService : apiDataService

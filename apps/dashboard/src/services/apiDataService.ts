@@ -1,7 +1,6 @@
 import { io, type Socket } from 'socket.io-client'
 import type { AnalyticsEvent, DataService, EventFilter } from '@lumen/shared-types'
-
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+import { apiFetch, expireSession, refreshSession, API_URL } from './http'
 
 function buildQuery(filter?: EventFilter): string {
   if (!filter) return ''
@@ -19,13 +18,26 @@ class ApiDataService implements DataService {
 
   private getSocket(): Socket {
     if (!this.socket) {
-      this.socket = io(API_URL, { transports: ['websocket'] })
+      const socket = io(API_URL, { transports: ['websocket'], withCredentials: true })
+      // the server rejects the handshake when the access token has expired;
+      // socket.io won't retry that on its own, so refresh the session and reconnect
+      socket.on('connect_error', async (err) => {
+        if (err.message !== 'unauthorized') return
+        if (await refreshSession()) socket.connect()
+        else expireSession()
+      })
+      this.socket = socket
     }
     return this.socket
   }
 
+  disconnect() {
+    this.socket?.disconnect()
+    this.socket = null
+  }
+
   async getEvents(filter?: EventFilter): Promise<AnalyticsEvent[]> {
-    const res = await fetch(`${API_URL}/api/events${buildQuery(filter)}`)
+    const res = await apiFetch(`/api/events${buildQuery(filter)}`)
     if (!res.ok) throw new Error(`Failed to fetch events: ${res.status}`)
     const data = (await res.json()) as { events: AnalyticsEvent[] }
     return data.events
@@ -53,4 +65,9 @@ class ApiDataService implements DataService {
   }
 }
 
-export const apiDataService: DataService = new ApiDataService()
+const service = new ApiDataService()
+
+export const apiDataService: DataService = service
+
+/** Close the live socket (on logout) so the next user opens a fresh, authenticated one. */
+export const disconnectLiveEvents = () => service.disconnect()
