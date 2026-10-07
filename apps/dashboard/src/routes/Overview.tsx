@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { useEventsContext } from '../context/eventsContext'
 import { useFilterParams } from '../hooks/useFilterParams'
 import { StatCard } from '../components/StatCard'
-import { TimeSeriesChart } from '../components/TimeSeriesChart'
-import { EventBreakdownChart } from '../components/EventBreakdownChart'
+import { ChartPlaceholder } from '../components/ChartPlaceholder'
 import { FilterBar } from '../components/FilterBar'
 import { LoadingState } from '../components/LoadingState'
 import { InsightsStrip } from '../components/InsightsStrip'
@@ -11,6 +10,15 @@ import { TopLists } from '../components/TopLists'
 import { bucketByRange, countByEventType } from '../utils/aggregate'
 import { computeInsights } from '../utils/insights'
 import { filterEvents } from '../utils/filterEvents'
+
+// The charts pull in the whole of recharts (~120 kB gzipped). Loading them lazily
+// lets the stat cards, insights and lists paint as soon as the data arrives.
+const TimeSeriesChart = lazy(() =>
+  import('../components/TimeSeriesChart').then((m) => ({ default: m.TimeSeriesChart })),
+)
+const EventBreakdownChart = lazy(() =>
+  import('../components/EventBreakdownChart').then((m) => ({ default: m.EventBreakdownChart })),
+)
 
 export function Overview() {
   const { events, loading } = useEventsContext()
@@ -98,8 +106,12 @@ export function Overview() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <TimeSeriesChart data={timeSeriesData} />
-        <EventBreakdownChart data={breakdownData} selected={filter.eventTypes} onToggle={toggleEventType} />
+        <Suspense fallback={<ChartPlaceholder />}>
+          <TimeSeriesChart data={timeSeriesData} />
+        </Suspense>
+        <Suspense fallback={<ChartPlaceholder />}>
+          <EventBreakdownChart data={breakdownData} selected={filter.eventTypes} onToggle={toggleEventType} />
+        </Suspense>
       </div>
 
       <div className="mt-6">

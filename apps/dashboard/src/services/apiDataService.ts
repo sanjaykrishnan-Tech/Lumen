@@ -2,6 +2,28 @@ import { io, type Socket } from 'socket.io-client'
 import type { AnalyticsEvent, DataService, EventFilter } from '@lumen/shared-types'
 import { apiFetch, expireSession, refreshSession, API_URL } from './http'
 
+interface EarlyEvents {
+  projectId: string
+  promise: Promise<{ events: AnalyticsEvent[] } | null>
+}
+
+declare global {
+  interface Window {
+    /** Set by the inline script in index.html: the events request, already in flight. */
+    __lumenEvents?: EarlyEvents
+  }
+}
+
+// Use the request index.html already started, if it is for this project and the
+// caller wants nothing but that project's events. Single use.
+function takeEarlyEvents(filter?: EventFilter): EarlyEvents['promise'] | null {
+  const early = typeof window === 'undefined' ? undefined : window.__lumenEvents
+  if (!early || !filter || filter.projectId !== early.projectId) return null
+  if (filter.eventTypes?.length || filter.search || filter.from || filter.to) return null
+  delete window.__lumenEvents
+  return early.promise
+}
+
 function buildQuery(filter?: EventFilter): string {
   if (!filter) return ''
   const params = new URLSearchParams()
@@ -38,6 +60,11 @@ class ApiDataService implements DataService {
   }
 
   async getEvents(filter?: EventFilter): Promise<AnalyticsEvent[]> {
+    // null means the early request failed (e.g. 401), so fall through to the
+    // normal path, which can refresh the session and retry
+    const early = await takeEarlyEvents(filter)
+    if (early) return early.events
+
     const res = await apiFetch(`/api/events${buildQuery(filter)}`)
     if (!res.ok) throw new Error(`Failed to fetch events: ${res.status}`)
     const data = (await res.json()) as { events: AnalyticsEvent[] }
