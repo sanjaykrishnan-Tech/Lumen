@@ -1,77 +1,183 @@
+<div align="center">
+
 # Lumen
 
-Mini analytics platform (Mixpanel-style) — SDK, real-time pipeline, dashboard.
+### Product analytics your whole team can understand in five minutes.
 
-## Structure
+Track events with one line of code. Watch them arrive live. See funnels, retention and trends without writing SQL.
 
+[![CI](https://github.com/sanjaykrishnan-Tech/Lumen/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjaykrishnan-Tech/Lumen/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-end--to--end-3178c6)
+![SDK](https://img.shields.io/badge/SDK-~4.5%20KB-brightgreen)
+
+</div>
+
+---
+
+## Why Lumen?
+
+Big analytics tools are powerful. They are also slow to set up, hard to learn and expensive to run. Most small teams use 10% of the features.
+
+Lumen does the 10% that matters, and does it well.
+
+| You want to know...                  | Lumen shows you...                        |
+| ------------------------------------ | ----------------------------------------- |
+| What is happening right now?         | A **live event feed** that updates in real time |
+| Where do users drop off?             | **Funnels** with step-by-step conversion  |
+| Do users come back?                  | **Retention cohorts** in a clear grid     |
+| What is trending?                    | **Charts and insights** on the overview   |
+| Did my tracking code work?           | A **test event** button in project settings |
+
+## Features
+
+- **Real-time event stream.** Events appear in the dashboard as they happen. Pause, filter and search the feed. Export to CSV.
+- **Funnels.** Build an ordered list of steps. See how many users reach each one.
+- **Retention.** Cohort grid that shows how many users return over time.
+- **Overview.** Time-series charts, event breakdowns and top lists, with an insights strip that points out what changed.
+- **Multiple projects.** One account, many apps. Each project has its own write key and its own data.
+- **Shareable views.** Every filter lives in the URL. Copy the link and your teammate sees the same view.
+- **Tiny SDK.** About 4.5 KB. Batches events, retries on failure and keeps an offline queue so nothing is lost on reload.
+- **Secure by default.** Cookie-based auth with httpOnly tokens and refresh rotation. Passwords hashed with Argon2. Ingestion requires a write key. Rate limiting is on.
+- **Fast dashboard.** Code splitting, lazy-loaded charts and compressed responses.
+
+## Get started in 60 seconds
+
+**1. Install the SDK**
+
+```bash
+yarn add @lumen/sdk
 ```
-apps/
-  dashboard/   React + TS + Tailwind + Recharts dashboard — Overview (charts),
-               Events (live, filterable, pausable feed with CSV export),
-               Funnels (ordered-step conversion), Retention (cohort grid).
-               All views are URL-synced and share one real-time event stream.
-  backend/     Node/Express ingestion + Postgres + Socket.io (Phase 3)
-  demo-app/    Task management app that fires real events via @lumen/sdk (Phase 5)
-packages/
-  shared-types/  AnalyticsEvent/EventFilter/DataService types shared by dashboard + backend
-  sdk/           @lumen/sdk tracking SDK — init()/track(), auto-batched, offline queue (Phase 4)
-```
 
-## Status
-
-Phase 5 done: a small task management app (`apps/demo-app`) uses `@lumen/sdk` to fire
-real events — `page_view`, `task_created`, `task_completed`, `task_reopened`,
-`task_deleted`, and filter-tab clicks — so the dashboard now has genuine, SDK-driven
-traffic instead of only synthetic/seeded data.
-
-## Roadmap
-
-See project plan — remaining work is production-style concerns (Redis caching, dedup,
-rate limiting, rollups) once there's a concrete bottleneck to point to.
-
-## Development
-
-Requires Docker (for Postgres) and Node matching `.nvmrc` (`nvm use`).
-
-```
-yarn install
-yarn build:sdk    # dashboard and demo-app both depend on the built @lumen/sdk output
-
-yarn db:up        # start Postgres
-yarn db:migrate   # create the events table
-yarn db:seed you@example.com   # backfill ~2500 events into that account's first project (sign up first)
-
-yarn dev:backend   # http://localhost:4000
-yarn dev:dashboard # http://localhost:5173
-yarn dev:demo      # http://localhost:5174 — generates real SDK events as you use it
-```
-
-Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/dashboard/.env.example`
-to `apps/dashboard/.env` to customize ports/URLs. Set `VITE_USE_MOCK=true` in the
-dashboard's `.env` to run against the built-in mock data service instead of the backend.
-
-### API
-
-Auth is cookie-based (httpOnly JWT access + rotating refresh token): `POST /api/auth/register|login|refresh|logout`, `GET /api/auth/me`.
-
-- `GET /api/projects` / `POST /api/projects` / `POST /api/projects/:id/rotate-key` — your projects and their write keys (signed in)
-- `GET /api/events?projectId=…&eventTypes=a,b&search=foo&from=ISO&to=ISO` — query a project's events (signed in, must be a member)
-- `POST /api/events` with header `X-Lumen-Key: <project write key>` and `{ "events": [{ "eventType", "userId", "properties"?, "timestamp"? }] }` — ingest a batch; broadcasts each event to that project's Socket.io room
-
-### SDK (`@lumen/sdk`)
+**2. Add two lines**
 
 ```ts
 import { init, track } from '@lumen/sdk'
 
-init({ apiUrl: 'http://localhost:4000', writeKey: 'lmn_…', batchSize: 10, flushIntervalMs: 5000 })
-track('page_view', { page: '/pricing' })
+init({ apiUrl: 'https://your-lumen-api.com', writeKey: 'lmn_…' })
+track('signed_up', { plan: 'pro' })
 ```
 
-Or via a plain `<script>` tag using the IIFE build (`dist/index.global.js`), which
-exposes a global `Lumen` object with the same `init`/`track`/`flush` API.
+**3. Open the dashboard.** Your event is already there.
 
-Events are queued in memory and localStorage, flushed once `batchSize` is reached or
-`flushIntervalMs` elapses, and left in the queue to retry on the next flush if the
-request fails — so events survive a page reload while offline.
+No bundler? Use a plain script tag. The IIFE build adds a global `Lumen` object with the same `init`, `track` and `flush` functions.
 
-Build it with `yarn workspace @lumen/sdk build` (outputs to `packages/sdk/dist`).
+```html
+<script src="/lumen.global.js"></script>
+<script>
+  Lumen.init({ apiUrl: 'https://your-lumen-api.com', writeKey: 'lmn_…' })
+  Lumen.track('page_view', { page: location.pathname })
+</script>
+```
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Your app + @lumen/sdk] -->|batched events + write key| B[Ingestion API<br/>Express]
+  B --> C[(Postgres)]
+  B -->|Socket.io| D[Live dashboard<br/>React]
+  C -->|queries| D
+```
+
+## Under the hood
+
+| Layer      | Tech                                              |
+| ---------- | ------------------------------------------------- |
+| Dashboard  | React 19, TypeScript, Tailwind, Recharts, Vite    |
+| Backend    | Node, Express, Socket.io, Postgres                |
+| SDK        | TypeScript, ESM + CJS + IIFE builds, via tsup     |
+| Shared     | One types package used by dashboard and backend   |
+| Quality    | Unit tests (Vitest), oxlint, GitHub Actions CI    |
+
+```
+apps/
+  dashboard/       Analytics dashboard
+  backend/         Ingestion API, auth, projects, real-time
+  demo-app/        Sample task app that sends real events with the SDK
+packages/
+  sdk/             @lumen/sdk tracking library
+  shared-types/    Types shared across apps
+```
+
+## Run it yourself
+
+You need Docker (for Postgres) and the Node version in `.nvmrc`.
+
+```bash
+nvm use
+yarn install
+yarn build:sdk          # dashboard and demo-app need the built SDK
+
+yarn db:up              # start Postgres
+yarn db:migrate         # create the tables
+
+yarn dev:backend        # http://localhost:4000
+yarn dev:dashboard      # http://localhost:5173
+yarn dev:demo           # http://localhost:5174
+```
+
+1. Open the dashboard and create an account.
+2. Open the demo app and click around. Real events appear in the live feed.
+3. Want a full dashboard right away? Run `yarn db:seed you@example.com` to add about 2,500 sample events.
+
+### Configuration
+
+Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/dashboard/.env.example` to `apps/dashboard/.env`.
+
+| Variable          | Purpose                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `DATABASE_URL`    | Postgres connection string. Works with hosted Postgres such as Neon. |
+| `JWT_SECRET`      | Signs access tokens. **Required in production.**                 |
+| `CORS_ORIGIN`     | Comma-separated list of allowed origins.                         |
+| `COOKIE_SAMESITE` | Use `none` (with HTTPS) when dashboard and API use different domains. |
+| `VITE_USE_MOCK`   | Set to `true` to run the dashboard on built-in mock data.        |
+
+## API reference
+
+Auth uses httpOnly cookies: `POST /api/auth/register`, `login`, `refresh`, `logout`, and `GET /api/auth/me`.
+
+| Endpoint                              | Auth        | What it does                        |
+| ------------------------------------- | ----------- | ----------------------------------- |
+| `GET /api/projects`                   | Signed in   | List your projects                  |
+| `POST /api/projects`                  | Signed in   | Create a project                    |
+| `POST /api/projects/:id/rotate-key`   | Signed in   | Issue a new write key               |
+| `GET /api/events`                     | Project member | Query events (filter by type, text, date range) |
+| `POST /api/events`                    | `X-Lumen-Key` header | Ingest a batch of events   |
+
+Ingest example:
+
+```bash
+curl -X POST https://your-lumen-api.com/api/events \
+  -H "X-Lumen-Key: lmn_…" \
+  -H "Content-Type: application/json" \
+  -d '{"events":[{"eventType":"signed_up","userId":"u_42","properties":{"plan":"pro"}}]}'
+```
+
+## Roadmap
+
+- [ ] Redis caching and event dedup
+- [ ] Pre-computed rollups for large datasets
+- [ ] Team invites and roles
+- [ ] Alerts and weekly email digests
+- [ ] Hosted plan
+
+Have a feature request? [Open an issue](https://github.com/sanjaykrishnan-Tech/Lumen/issues).
+
+## Contributing
+
+CI runs lint, tests and builds on every pull request. Run the same checks locally before you push:
+
+```bash
+yarn workspace dashboard lint
+yarn workspace dashboard test
+yarn workspace backend build
+yarn workspace dashboard build
+```
+
+---
+
+<div align="center">
+
+**Lumen.** Know your product. Skip the complexity.
+
+</div>
