@@ -5,6 +5,7 @@ import { z } from 'zod'
 import cors from 'cors'
 import { Server as SocketIOServer } from 'socket.io'
 import cookieParser from 'cookie-parser'
+import compression from 'compression'
 import { createEventsRouter, projectRoom } from './routes/events.js'
 import { getMemberRole } from './db/projectsRepo.js'
 import { createAuthRouter } from './routes/auth.js'
@@ -28,6 +29,8 @@ const app = express()
 // incompatible with a "*" origin, so a wildcard falls back to reflecting the origin
 const credentialedOrigin = CORS_ORIGINS === '*' ? true : CORS_ORIGINS
 app.use(cors({ origin: credentialedOrigin, credentials: true }))
+// the events list is ~5x smaller gzipped, and the dashboard fetches it on every load
+app.use(compression())
 app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
 

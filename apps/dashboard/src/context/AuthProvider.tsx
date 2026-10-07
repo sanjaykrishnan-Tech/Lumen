@@ -2,22 +2,29 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import type { AuthUser } from '@lumen/shared-types'
 import { apiFetch, readError, setSessionExpiredHandler, USE_MOCK } from '../services/http'
 import { disconnectLiveEvents } from '../services/apiDataService'
+import { clearSessionCache, readCachedUser, writeCachedUser } from '../services/sessionCache'
 import { AuthContext, type AuthStatus } from './authContext'
 
 // mock mode has no backend, so there is nothing to sign in to
 const DEMO_USER: AuthUser = { id: 'demo', email: 'demo@lumen.dev', name: 'Demo User' }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(USE_MOCK ? DEMO_USER : null)
-  const [status, setStatus] = useState<AuthStatus>(USE_MOCK ? 'authenticated' : 'loading')
+  // A returning user is shown as signed in right away from the cached copy and
+  // verified in the background. With no cached user there is no session to check,
+  // so the sign-in page can render without a network round trip.
+  const [cachedUser] = useState<AuthUser | null>(() => (USE_MOCK ? DEMO_USER : readCachedUser()))
+  const [user, setUser] = useState<AuthUser | null>(cachedUser)
+  const [status, setStatus] = useState<AuthStatus>(cachedUser ? 'authenticated' : 'anonymous')
 
   const clearSession = useCallback(() => {
+    clearSessionCache()
     disconnectLiveEvents()
     setUser(null)
     setStatus('anonymous')
   }, [])
 
   const startSession = useCallback((next: AuthUser) => {
+    writeCachedUser(next)
     setUser(next)
     setStatus('authenticated')
   }, [])
@@ -25,21 +32,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (USE_MOCK) return
     setSessionExpiredHandler(clearSession)
+    if (!cachedUser) {
+      return () => setSessionExpiredHandler(null)
+    }
 
     let active = true
     apiFetch('/api/auth/me')
       .then(async (res) => {
         if (!active) return
+        // a 401 already ended the session inside apiFetch; any other failure
+        // (5xx, offline, cold-starting server) keeps the cached session
         if (res.ok) startSession(((await res.json()) as { user: AuthUser }).user)
-        else clearSession()
       })
-      .catch(() => active && clearSession())
+      .catch(() => {})
 
     return () => {
       active = false
       setSessionExpiredHandler(null)
     }
-  }, [clearSession, startSession])
+  }, [cachedUser, clearSession, startSession])
 
   const authenticate = useCallback(
     async (path: string, body: object, fallback: string) => {

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import type { Project } from '@lumen/shared-types'
 import { apiFetch, USE_MOCK } from '../services/http'
 import { LoadingState } from '../components/LoadingState'
+import { useAuth } from './authContext'
+import { readCachedProjects, writeCachedProjects } from '../services/sessionCache'
 import { ProjectsContext } from './projectsContext'
 
 const STORAGE_KEY = 'lumen.projectId'
@@ -22,7 +24,13 @@ function readStoredId(): string | null {
 }
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = useState<Project[]>(USE_MOCK ? [DEMO_PROJECT] : [])
+  const { user } = useAuth()
+  const userId = user?.id
+  // seeded from the cache so the events request can start immediately, in
+  // parallel with the /projects revalidation below
+  const [projects, setProjects] = useState<Project[]>(() =>
+    USE_MOCK ? [DEMO_PROJECT] : userId ? readCachedProjects(userId) : [],
+  )
   const [selectedId, setSelectedId] = useState<string | null>(readStoredId)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +47,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [])
+  }, [userId])
+
+  useEffect(() => {
+    if (!USE_MOCK && userId && projects.length > 0) writeCachedProjects(userId, projects)
+  }, [userId, projects])
 
   // a stored id can be stale (project deleted, different account), so fall back to the first
   const current = useMemo(
@@ -67,7 +79,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [projects, current, selectProject, upsertProject],
   )
 
-  if (error) {
+  // a failed refresh only matters when there is nothing cached to show
+  if (error && projects.length === 0) {
     return (
       <p role="alert" className="p-8 text-center text-sm text-red-600">
         {error}
