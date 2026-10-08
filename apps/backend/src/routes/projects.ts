@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../auth/middleware.js'
+import { countOwnedProjects, getAccount } from '../db/billingRepo.js'
+import { PLANS } from '../plans.js'
 import { createProject, getMemberRole, listProjectsForUser, rotateWriteKey } from '../db/projectsRepo.js'
 
 const createSchema = z.object({ name: z.string().trim().min(1, 'Name is required').max(60) })
@@ -29,6 +31,12 @@ export function createProjectsRouter(): Router {
       return
     }
     try {
+      const account = await getAccount(req.user!.id)
+      const limit = PLANS[account?.plan ?? 'free'].projects
+      if ((await countOwnedProjects(req.user!.id)) >= limit) {
+        res.status(403).json({ error: `Your plan allows ${limit} project${limit === 1 ? '' : 's'}. Upgrade to add more.` })
+        return
+      }
       res.status(201).json({ project: await createProject(req.user!.id, parsed.data.name) })
     } catch (err) {
       console.error('Failed to create project:', err)

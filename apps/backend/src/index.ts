@@ -9,6 +9,7 @@ import compression from 'compression'
 import { createEventsRouter, projectRoom } from './routes/events.js'
 import { getMemberRole } from './db/projectsRepo.js'
 import { createAuthRouter } from './routes/auth.js'
+import { createBillingRouter, stripeWebhook } from './routes/billing.js'
 import { createProjectsRouter } from './routes/projects.js'
 import { ACCESS_COOKIE, parseCookieHeader } from './auth/cookies.js'
 import { verifyAccessToken } from './auth/tokens.js'
@@ -32,6 +33,8 @@ app.use(cors({ origin: credentialedOrigin, credentials: true }))
 // the events list is ~5x smaller gzipped, and the dashboard fetches it on every load
 app.use(compression())
 app.use(cookieParser())
+// Stripe signs the raw body, so this route must be registered before express.json
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), stripeWebhook)
 app.use(express.json({ limit: '1mb' }))
 
 const httpServer = createServer(app)
@@ -45,6 +48,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', createAuthRouter())
 app.use('/api/projects', createProjectsRouter())
+app.use('/api/billing', createBillingRouter())
 app.use('/api/events', createEventsRouter(io))
 
 // only signed-in users may open a live-event socket; the access token rides in

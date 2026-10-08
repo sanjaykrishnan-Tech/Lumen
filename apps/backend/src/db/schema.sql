@@ -58,3 +58,17 @@ CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members (user_id)
 ALTER TABLE events ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS idx_events_project_timestamp ON events (project_id, timestamp);
+
+-- billing: one plan per account. Stripe ids are null for free accounts.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_stripe_customer ON users (stripe_customer_id);
+
+-- events ingested per account per calendar month (UTC); month is the first day
+CREATE TABLE IF NOT EXISTS usage_monthly (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  month DATE NOT NULL,
+  event_count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, month)
+);
