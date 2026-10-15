@@ -26,6 +26,9 @@ const CORS_ORIGINS: string | string[] =
       : DEFAULT_ORIGINS
 
 const app = express()
+// behind Render's proxy: trust one hop so req.ip is the real client, not the proxy
+// (otherwise every user shares one rate-limit bucket)
+app.set('trust proxy', 1)
 // credentials:true lets the browser send the auth cookies cross-origin; it is
 // incompatible with a "*" origin, so a wildcard falls back to reflecting the origin
 const credentialedOrigin = CORS_ORIGINS === '*' ? true : CORS_ORIGINS
