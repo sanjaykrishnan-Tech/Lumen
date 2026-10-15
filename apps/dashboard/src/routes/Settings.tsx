@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Project } from '@lumen/shared-types'
 import { useProjects } from '../context/projectsContext'
 import { CopyButton } from '../components/CopyButton'
@@ -168,6 +168,101 @@ function NewProjectSection() {
   )
 }
 
+interface Billing {
+  plan: string
+  limits: { label: string; eventsPerMonth: number; projects: number; historyDays: number }
+  usage: { events: number; projects: number }
+  canUpgrade: boolean
+  canManage: boolean
+}
+
+function PlanSection() {
+  const [billing, setBilling] = useState<Billing | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (USE_MOCK) return
+    apiFetch('/api/billing')
+      .then((res) => (res.ok ? (res.json() as Promise<Billing>) : null))
+      .then(setBilling)
+      .catch(() => setBilling(null))
+  }, [])
+
+  async function redirectTo(path: '/api/billing/checkout' | '/api/billing/portal') {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await apiFetch(path, { method: 'POST' })
+      if (!res.ok) throw new Error(await readError(res, 'Something went wrong'))
+      window.location.href = ((await res.json()) as { url: string }).url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setBusy(false)
+    }
+  }
+
+  if (!billing) return null
+  const { limits, usage } = billing
+  const pct = Math.min(100, Math.round((usage.events / limits.eventsPerMonth) * 100))
+
+  return (
+    <Section
+      title={`Plan: ${limits.label}`}
+      description={`${limits.projects} project${limits.projects === 1 ? '' : 's'} · ${limits.historyDays} days of history`}
+    >
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="text-gray-700">Events this month</span>
+        <span className="tabular-nums text-gray-500">
+          {usage.events.toLocaleString()} / {limits.eventsPerMonth.toLocaleString()}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Events used this month"
+        className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100"
+      >
+        <div className={`h-full ${pct >= 90 ? 'bg-red-500' : 'bg-green-600'}`} style={{ width: `${pct}%` }} />
+      </div>
+      {pct >= 90 && (
+        <p className="mt-2 text-sm text-red-600">
+          {pct >= 100 ? 'Limit reached — new events are being rejected.' : 'You are close to your monthly limit.'}
+        </p>
+      )}
+      <div className="mt-4 flex gap-2">
+        {billing.canUpgrade && (
+          <button
+            type="button"
+            onClick={() => void redirectTo('/api/billing/checkout')}
+            disabled={busy}
+            className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:opacity-60"
+          >
+            Upgrade to Pro
+          </button>
+        )}
+        {billing.canManage && (
+          <button
+            type="button"
+            onClick={() => void redirectTo('/api/billing/portal')}
+            disabled={busy}
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+          >
+            Manage billing
+          </button>
+        )}
+      </div>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
+    </Section>
+  )
+}
+
 export function Settings() {
   const { current } = useProjects()
   const snippet = sdkSnippet(current)
@@ -179,6 +274,7 @@ export function Settings() {
         <p className="text-sm text-gray-500">Project settings</p>
       </div>
 
+      <PlanSection />
       <WriteKeySection project={current} />
 
       <Section title="Install the SDK" description="Add this to your app to start sending events to this project.">

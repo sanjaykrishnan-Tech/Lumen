@@ -37,8 +37,25 @@ Lumen does the 10% that matters, and does it well.
 - **Multiple projects.** One account, many apps. Each project has its own write key and its own data.
 - **Shareable views.** Every filter lives in the URL. Copy the link and your teammate sees the same view.
 - **Tiny SDK.** About 4.5 KB. Batches events, retries on failure and keeps an offline queue so nothing is lost on reload.
-- **Secure by default.** Cookie-based auth with httpOnly tokens and refresh rotation. Passwords hashed with Argon2. Ingestion requires a write key. Rate limiting is on.
+- **Secure by default.** Cookie-based auth with httpOnly tokens and refresh rotation. Passwords hashed with Argon2. Ingestion requires a write key and is rate limited.
 - **Fast dashboard.** Code splitting, lazy-loaded charts and compressed responses.
+
+## Pricing
+
+Use the hosted version, or run it yourself for free. Same code either way.
+
+| | **Free** | **Pro** |
+| --- | --- | --- |
+| Price | $0 | $9 / month |
+| Events per month | 10,000 | 100,000 |
+| Projects | 1 | 5 |
+| History | 30 days | 6 months |
+| Live feed, funnels, retention | ✓ | ✓ |
+| CSV export | ✓ | ✓ |
+
+Need more volume? [Open an issue](https://github.com/sanjaykrishnan-Tech/Lumen/issues) and tell us what you need.
+
+**Self-hosting.** Billing is optional. Leave the `STRIPE_*` variables unset and the Stripe routes stay off. Plan limits still apply, and you can change them in `apps/backend/src/plans.ts`.
 
 ## Get started in 60 seconds
 
@@ -131,6 +148,7 @@ Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/dashboard/.env
 | `CORS_ORIGIN`     | Comma-separated list of allowed origins.                         |
 | `COOKIE_SAMESITE` | Use `none` (with HTTPS) when dashboard and API use different domains. |
 | `VITE_USE_MOCK`   | Set to `true` to run the dashboard on built-in mock data.        |
+| `STRIPE_SECRET_KEY`, `STRIPE_PRO_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `APP_URL` | Optional. Turn on paid plans through Stripe. |
 
 ## API reference
 
@@ -142,7 +160,9 @@ Auth uses httpOnly cookies: `POST /api/auth/register`, `login`, `refresh`, `logo
 | `POST /api/projects`                  | Signed in   | Create a project                    |
 | `POST /api/projects/:id/rotate-key`   | Signed in   | Issue a new write key               |
 | `GET /api/events`                     | Project member | Query events (filter by type, text, date range) |
-| `POST /api/events`                    | `X-Lumen-Key` header | Ingest a batch of events   |
+| `POST /api/events`                    | `X-Lumen-Key` header | Ingest up to 500 events. Returns `429` over the monthly quota |
+| `GET /api/billing`                    | Signed in   | Plan, limits and this month's usage |
+| `POST /api/billing/checkout`, `/portal` | Signed in | Start an upgrade, or manage billing in Stripe |
 
 Ingest example:
 
@@ -159,9 +179,14 @@ curl -X POST https://your-lumen-api.com/api/events \
 - [ ] Pre-computed rollups for large datasets
 - [ ] Team invites and roles
 - [ ] Alerts and weekly email digests
-- [ ] Hosted plan
+- [x] Hosted plans with Stripe billing
+- [ ] Larger plans (after load testing)
 
 Have a feature request? [Open an issue](https://github.com/sanjaykrishnan-Tech/Lumen/issues).
+
+## License
+
+[AGPL-3.0](LICENSE). You can use, modify and self-host Lumen freely. If you offer a modified version as a network service, you must share your changes under the same license.
 
 ## Contributing
 
